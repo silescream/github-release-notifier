@@ -1,11 +1,21 @@
 import { buildApp } from './app.js';
 import { config } from './config/env.js';
+import { prisma } from './db/client.js';
 
-const app = buildApp();
+async function start() {
+  const app = buildApp();
 
-app.listen({ port: config.port, host: config.host }, (err) => {
-  if (err) {
-    app.log.error(err);
+  try {
+    await prisma.$connect();
+
+    await app.listen({
+      port: config.port,
+      host: config.host,
+    });
+  } catch (error) {
+    app.log.error(error);
     process.exit(1);
   }
-});
+}
+
+start();

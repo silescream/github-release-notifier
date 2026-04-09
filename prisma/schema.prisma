@@ -6,3 +6,18 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Subscription {
+  id               String    @id @default(uuid())
+  email            String
+  repo             String
+  confirmed        Boolean   @default(false)
+  confirmToken     String    @unique
+  unsubscribeToken String    @unique
+  lastSeenTag      String?
+  createdAt        DateTime  @default(now())
+
+  @@unique([email, repo])
+  @@index([email])
+  @@map("subscriptions")
+}
