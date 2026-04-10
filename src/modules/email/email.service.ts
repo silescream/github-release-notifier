@@ -52,6 +52,7 @@ export class EmailService {
       }
     } catch (err) {
       console.error(`[EmailService] Failed to send confirmation to ${email}:`, err);
+      throw err;
     }
   }
 
@@ -84,6 +85,7 @@ export class EmailService {
       }
     } catch (err) {
       console.error(`[EmailService] Failed to send release notification to ${email}:`, err);
+      throw err;
     }
   }
 }

@@ -67,11 +67,16 @@ export class SubscriptionService {
     const confirmToken = randomBytes(32).toString('hex');
     const unsubscribeToken = randomBytes(32).toString('hex');
 
-    await this.db.subscription.create({
+    const createdSub = await this.db.subscription.create({
       data: { email, repo, confirmToken, unsubscribeToken },
     });
 
-    await this.email.sendConfirmation(email, repo, confirmToken);
+    try {
+      await this.email.sendConfirmation(email, repo, confirmToken);
+    } catch {
+      await this.db.subscription.delete({ where: { id: createdSub.id } });
+      throw new ServiceError('EMAIL_ERROR', 503, 'Failed to send confirmation email');
+    }
   }
 
   async confirmSubscription(token: string): Promise<void> {
