@@ -16,6 +16,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@fastify/formbody": "^8.0.2",
     "@prisma/client": "^6.19.3",
     "dotenv": "^17.4.1",
     "fastify": "^5.8.4",
