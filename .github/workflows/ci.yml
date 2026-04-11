@@ -24,6 +24,10 @@ jobs:
   test-unit:
     name: Unit Tests
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://localhost/test
+      APP_BASE_URL: http://localhost:3000
+      SMTP_FROM: noreply@releases.app
     steps:
       - uses: actions/checkout@v4
 
