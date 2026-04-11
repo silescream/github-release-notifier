@@ -21,8 +21,9 @@ const config: Config = {
       },
     ],
   },
-  testMatch: ['**/*.test.ts'],
-  testPathIgnorePatterns: ['/node_modules/', '\\.integration\\.test\\.ts$'],
+  testMatch: ['**/*.integration.test.ts'],
+  globalSetup: './src/test-utils/globalSetup.ts',
+  globalTeardown: './src/test-utils/globalTeardown.ts',
   clearMocks: true,
 };
 
