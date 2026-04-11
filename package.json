@@ -11,6 +11,10 @@
     "test": "jest",
     "test:unit": "jest --config jest.config.ts",
     "test:integration": "jest --config jest.integration.config.ts --runInBand",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:test:up": "docker-compose -f docker-compose.test.yml up -d --wait",
+    "docker:test:down": "docker-compose -f docker-compose.test.yml down",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write src/**/*.ts"
   },
@@ -20,6 +24,7 @@
   "dependencies": {
     "@fastify/formbody": "^8.0.2",
     "@prisma/client": "^6.19.3",
+    "prisma": "^6.19.3",
     "dotenv": "^17.4.1",
     "fastify": "^5.8.4",
     "node-cron": "^4.2.1",
@@ -38,7 +43,6 @@
     "jest": "^30.3.0",
     "pg": "^8.20.0",
     "prettier": "^3.8.1",
-    "prisma": "^6.19.3",
     "ts-jest": "^29.4.9",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2"
