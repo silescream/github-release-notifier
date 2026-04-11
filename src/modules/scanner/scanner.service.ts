@@ -3,6 +3,7 @@ import type { PrismaClient } from '@prisma/client';
 import { prisma } from '../../db/client.js';
 import { githubClient, RateLimitError, type GitHubClient } from '../github/github.client.js';
 import { emailService, type EmailService } from '../email/email.service.js';
+import { scannerNotificationsTotal } from '../metrics/metrics.registry.js';
 
 const SCAN_DELAY_MS = 300;
 
@@ -122,6 +123,8 @@ export class ScannerService {
             where: { id: sub.id },
             data: { lastSeenTag: latestTag },
           });
+
+          scannerNotificationsTotal.inc();
         } catch (err) {
           console.error(`[Scanner] Failed to process subscription ${sub.id} (${sub.email}):`, err);
         }

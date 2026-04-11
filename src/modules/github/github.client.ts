@@ -1,5 +1,6 @@
 import { config } from '../../config/env.js';
 import { cacheService } from './cache.service.js';
+import { githubRateLimitHitsTotal } from '../metrics/metrics.registry.js';
 
 const GITHUB_API = 'https://api.github.com';
 const REPO_REGEX = /^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/;
@@ -39,7 +40,10 @@ export class GitHubClient {
       return true;
     }
     if (response.status === 404) return false;
-    if (response.status === 429) throw new RateLimitError(this.parseRetryAfter(response));
+    if (response.status === 429) {
+      githubRateLimitHitsTotal.inc();
+      throw new RateLimitError(this.parseRetryAfter(response));
+    }
 
     throw new Error(`GitHub API error: ${response.status}`);
   }
@@ -53,7 +57,10 @@ export class GitHubClient {
     }
 
     if (response.status === 404) return null;
-    if (response.status === 429) throw new RateLimitError(this.parseRetryAfter(response));
+    if (response.status === 429) {
+      githubRateLimitHitsTotal.inc();
+      throw new RateLimitError(this.parseRetryAfter(response));
+    }
 
     throw new Error(`GitHub API error: ${response.status}`);
   }

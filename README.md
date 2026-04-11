@@ -113,6 +113,7 @@ Integration tests use a separate database (`notifier_test`) defined in `.env.tes
 | GET | /api/confirm/:token | Confirm subscription |
 | GET | /api/unsubscribe/:token | Unsubscribe |
 | GET | /api/subscriptions?email= | List active subscriptions for an email |
+| GET | /metrics | Prometheus metrics |
 
 `POST /api/subscribe` accepts both `application/json` and `application/x-www-form-urlencoded`.
 
@@ -195,6 +196,20 @@ docker-compose --profile full up --build
 The cache stores positive results of `checkRepoExists` (i.e. repository exists) with a TTL of 10 minutes. Only 200 responses are cached — 404 is not cached since a repository can be created at any time and negative caching would cause false "not found" responses for up to 10 minutes. Rate limit errors (429) are never cached. If Redis becomes unavailable after startup, the service automatically falls back to in-memory cache.
 
 `getLatestRelease` is intentionally not cached. The scanner runs every 10 minutes — caching release lookups with the same TTL would provide no benefit since the cached value would expire by the time the scanner runs again. The only real gain from caching is on `checkRepoExists`, which is called on every `POST /api/subscribe` and benefits from avoiding repeated GitHub API calls for the same repository.
+
+## Prometheus metrics
+
+The service exposes a `GET /metrics` endpoint in Prometheus text format. The following metrics are available:
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `http_requests_total` | Counter | Total HTTP requests, labelled by `method`, `route`, `status_code` |
+| `http_request_duration_seconds` | Histogram | Request duration in seconds, same labels |
+| `scanner_notifications_total` | Counter | Release notification emails sent successfully |
+| `github_rate_limit_hits_total` | Counter | GitHub API 429 rate limit errors encountered |
+| `active_subscriptions_total` | Gauge | Number of confirmed subscriptions — queried from the database on each scrape |
+
+Route labels use the Fastify route pattern (e.g. `/api/confirm/:token`) rather than the actual URL, so high-cardinality token values do not pollute the label space.
 
 ## Design decisions
 

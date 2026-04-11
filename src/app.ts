@@ -3,6 +3,7 @@ import formbody from '@fastify/formbody';
 import fp from 'fastify-plugin';
 import subscriptionsRouter from './modules/subscriptions/subscriptions.router.js';
 import apiKeyAuth from './plugins/apiKeyAuth.js';
+import metricsPlugin from './plugins/metrics.js';
 
 export function buildApp() {
   const app = Fastify({
@@ -10,6 +11,7 @@ export function buildApp() {
   });
 
   app.register(formbody);
+  app.register(fp(metricsPlugin));
   app.register(fp(apiKeyAuth));
 
   app.get('/health', async () => {
