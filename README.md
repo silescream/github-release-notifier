@@ -154,6 +154,8 @@ All configuration is via environment variables. Copy `.env.example` to `.env` to
 | `SMTP_USER` | no | SMTP username |
 | `SMTP_PASS` | no | SMTP password |
 | `SMTP_FROM` | no | From address, default `noreply@releases.app` |
+| `API_KEY` | no | If set, `GET /api/subscriptions` requires `X-API-Key` header |
+| `REDIS_URL` | no | Redis connection string for GitHub API response caching — falls back to in-memory cache if not set |
 
 ## Project structure
 
@@ -189,5 +191,7 @@ prisma/
 **Scanner groups by repository** — if 50 users are subscribed to `facebook/react`, the scanner makes one GitHub API call for that repository, not 50. This keeps GitHub API usage proportional to the number of unique repositories, not subscribers.
 
 **Rollback on email failure** — the subscription record is created first, then the confirmation email is sent. If sending fails, the record is deleted and a 503 is returned so the user can try again. This avoids the opposite problem: sending an email with a confirmation token that was never saved to the database.
+
+**Optional API key authentication** — if `API_KEY` is set, `GET /api/subscriptions` requires an `X-API-Key` header. All other endpoints remain open. This is intentional: `/api/confirm/:token` and `/api/unsubscribe/:token` are clicked from emails in a browser — there is no way to attach a header to those requests. Protecting only the subscriptions listing is the only design that works in practice.
 
 **Docker Compose includes PostgreSQL** — this is a deliberate trade-off for the purposes of this assignment. In a real production setup the database would be a managed service (RDS, Supabase, etc.) running independently of the application deployment. The `docker-compose.yml` in production would only contain the application service, with `DATABASE_URL` pointing to the external database.
