@@ -178,6 +178,24 @@ prisma/
   migrations/        — migration files (committed to git)
 ```
 
+## Redis caching
+
+By default the service uses an in-memory Map for caching GitHub API responses. To use Redis instead, set `REDIS_URL` in your `.env`:
+
+```
+REDIS_URL=redis://localhost:6379
+```
+
+To start Redis alongside the app and database:
+
+```bash
+docker-compose --profile full up --build
+```
+
+The cache stores positive results of `checkRepoExists` (i.e. repository exists) with a TTL of 10 minutes. Only 200 responses are cached — 404 is not cached since a repository can be created at any time and negative caching would cause false "not found" responses for up to 10 minutes. Rate limit errors (429) are never cached. If Redis becomes unavailable after startup, the service automatically falls back to in-memory cache.
+
+`getLatestRelease` is intentionally not cached. The scanner runs every 10 minutes — caching release lookups with the same TTL would provide no benefit since the cached value would expire by the time the scanner runs again. The only real gain from caching is on `checkRepoExists`, which is called on every `POST /api/subscribe` and benefits from avoiding repeated GitHub API calls for the same repository.
+
 ## Design decisions
 
 **Fastify over Express** — built-in JSON schema validation via ajv, better TypeScript support, and faster request handling out of the box.
