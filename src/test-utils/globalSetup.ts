@@ -5,14 +5,17 @@ import { Client } from 'pg';
 export default async function globalSetup() {
   dotenv.config({ path: '.env.test' });
 
-  const client = new Client({
-    connectionString: 'postgresql://postgres:postgres@localhost:5433/postgres',
-  });
+  const testDbUrl = new URL(process.env['DATABASE_URL']!);
+  const adminUrl = new URL(testDbUrl.toString());
+  adminUrl.pathname = '/postgres';
 
+  const client = new Client({ connectionString: adminUrl.toString() });
   await client.connect();
-  const res = await client.query(`SELECT 1 FROM pg_database WHERE datname = 'notifier_test'`);
+
+  const dbName = testDbUrl.pathname.slice(1);
+  const res = await client.query(`SELECT 1 FROM pg_database WHERE datname = $1`, [dbName]);
   if (res.rowCount === 0) {
-    await client.query('CREATE DATABASE notifier_test');
+    await client.query(`CREATE DATABASE "${dbName}"`);
   }
   await client.end();
 

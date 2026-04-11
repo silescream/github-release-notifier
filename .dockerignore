@@ -1,0 +1,12 @@
+node_modules
+dist
+dist-test
+.env*
+!.env.example
+*.test.ts
+*.integration.test.ts
+.git
+.gitignore
+coverage
+README.md
+docker-compose*.yml
