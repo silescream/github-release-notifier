@@ -1,4 +1,5 @@
 import { config } from '../../config/env.js';
+import { cacheService } from './cache.service.js';
 
 const GITHUB_API = 'https://api.github.com';
 const REPO_REGEX = /^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/;
@@ -27,9 +28,16 @@ export class GitHubClient {
   }
 
   async checkRepoExists(repo: string): Promise<boolean> {
+    const cacheKey = `repo:exists:${repo.trim()}`;
+    const cached = await cacheService.get(cacheKey);
+    if (cached !== null) return cached === 'true';
+
     const response = await this.request(`/repos/${repo.trim()}`);
 
-    if (response.status === 200) return true;
+    if (response.status === 200) {
+      await cacheService.set(cacheKey, 'true');
+      return true;
+    }
     if (response.status === 404) return false;
     if (response.status === 429) throw new RateLimitError(this.parseRetryAfter(response));
 

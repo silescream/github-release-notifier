@@ -1,5 +1,14 @@
 import { GitHubClient, RateLimitError } from './github.client.js';
+import { cacheService } from './cache.service.js';
 
+jest.mock('./cache.service.js', () => ({
+  cacheService: {
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
+const mockCache = cacheService as jest.Mocked<typeof cacheService>;
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
@@ -87,5 +96,21 @@ describe('GitHubClient', () => {
       mockFetch.mockResolvedValueOnce(makeResponse(429, undefined, { 'Retry-After': '60' }));
       await expect(client.getLatestRelease('facebook/react')).rejects.toBeInstanceOf(RateLimitError);
     });
+  });
+
+  describe('caching', () => {
+    it('checkRepoExists returns cached true without calling fetch', async () => {
+      mockCache.get.mockResolvedValueOnce('true');
+      const result = await client.checkRepoExists('facebook/react');
+      expect(result).toBe(true);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('checkRepoExists caches 200 as true', async () => {
+      mockFetch.mockResolvedValueOnce(makeResponse(200));
+      await client.checkRepoExists('facebook/react');
+      expect(mockCache.set).toHaveBeenCalledWith('repo:exists:facebook/react', 'true');
+    });
+
   });
 });
