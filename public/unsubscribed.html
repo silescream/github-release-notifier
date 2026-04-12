@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unsubscribed — GitHub Release Notifier</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f6f8fa;
+      color: #1a1a1a;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #d0d7de;
+      border-radius: 12px;
+      padding: 40px;
+      width: 100%;
+      max-width: 440px;
+      text-align: center;
+    }
+
+    .icon { font-size: 48px; margin-bottom: 20px; }
+
+    h1 { font-size: 20px; font-weight: 600; margin-bottom: 10px; }
+
+    p {
+      font-size: 14px;
+      color: #57606a;
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+
+    .error-text { color: #a40000; }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #d0d7de;
+      border-top-color: #0969da;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="card" id="card">
+    <div class="spinner"></div>
+    <p>Processing your request...</p>
+  </div>
+
+  <script>
+    const card = document.getElementById('card');
+
+    function showSuccess() {
+      card.innerHTML = `
+        <div class="icon">&#10003;</div>
+        <h1>You've been unsubscribed</h1>
+        <p>You will no longer receive release notifications for this repository.</p>
+      `;
+    }
+
+    function showError(message) {
+      card.innerHTML = `
+        <div class="icon">&#10007;</div>
+        <h1>Something went wrong</h1>
+        <p class="error-text">${message}</p>
+      `;
+    }
+
+    async function unsubscribe() {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('token');
+
+      if (!token) {
+        showError('No unsubscribe token found in the link.');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/unsubscribe/${encodeURIComponent(token)}`);
+
+        if (response.ok) {
+          showSuccess();
+          return;
+        }
+
+        if (response.status === 404) {
+          showError('This unsubscribe link is invalid or has already been used.');
+          return;
+        }
+
+        showError('An unexpected error occurred. Please try again later.');
+      } catch {
+        showError('Network error. Please check your connection and try again.');
+      }
+    }
+
+    unsubscribe();
+  </script>
+</body>
+</html>
