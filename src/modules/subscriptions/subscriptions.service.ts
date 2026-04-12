@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto';
-import type { PrismaClient } from '@prisma/client';
+import { Prisma, type PrismaClient } from '@prisma/client';
 import { prisma } from '../../db/client.js';
 import { githubClient, RateLimitError, type GitHubClient } from '../github/github.client.js';
 import { emailService, type EmailService } from '../email/email.service.js';
@@ -75,9 +75,17 @@ export class SubscriptionService {
     const confirmToken = randomBytes(32).toString('hex');
     const unsubscribeToken = randomBytes(32).toString('hex');
 
-    const createdSub = await this.db.subscription.create({
-      data: { email, repo, confirmToken, unsubscribeToken, lastSeenTag: latestTag },
-    });
+    let createdSub: Awaited<ReturnType<typeof this.db.subscription.create>>;
+    try {
+      createdSub = await this.db.subscription.create({
+        data: { email, repo, confirmToken, unsubscribeToken, lastSeenTag: latestTag },
+      });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new ServiceError('ALREADY_EXISTS', 409, 'Email already subscribed to this repository');
+      }
+      throw err;
+    }
 
     try {
       await this.email.sendConfirmation(email, repo, confirmToken);

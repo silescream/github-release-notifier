@@ -21,7 +21,7 @@ A REST API service that lets users subscribe to email notifications when a GitHu
 
 ## Running with Docker
 
-This is the quickest way to get the full system running locally.
+This is the quickest way to get the backend stack running locally.
 
 ```bash
 git clone <repo-url>
@@ -35,7 +35,7 @@ Edit `.env` and set at minimum `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGR
 docker-compose up --build
 ```
 
-The app will be available at `http://localhost:3000`. Database migrations run automatically on startup.
+The API will be available at `http://localhost:3000`. Database migrations run automatically on startup.
 
 To stop:
 
@@ -70,6 +70,8 @@ To apply schema changes during development:
 ```bash
 npx prisma migrate dev --name describe-your-change
 ```
+
+**Note on the frontend:** the static pages in `public/` (subscription form, confirmation, unsubscribe) are served by nginx in production and are not served by the application itself. In local development the API is fully functional — all endpoints can be exercised via curl or Postman. This is a deliberate trade-off: keeping the application backend-only avoids pulling in a static file dependency that adds no value in production where nginx handles it more efficiently.
 
 ## Building for production
 
@@ -219,7 +221,7 @@ Route labels use the Fastify route pattern (e.g. `/api/confirm/:token`) rather t
 
 **No repositories table** — each subscription stores `last_seen_tag` directly. A separate repositories table would only make sense if we needed to share cached release state across subscribers, which overlaps with the Redis caching bonus. Keeping it simple avoids premature abstraction.
 
-**`last_seen_tag = null` on first subscription** — when a subscription is first confirmed and the scanner runs, it sets `last_seen_tag` to the current latest release without sending a notification. This prevents users from getting an email about a release that came out months ago just because they subscribed today.
+**`last_seen_tag` initialized at subscription time** — when a user subscribes, the service immediately fetches the latest release tag and stores it alongside the subscription record. This means the scanner will only notify about releases published after the subscription was created. If the GitHub API call fails at subscription time, `last_seen_tag` remains `null` and the scanner will send a notification on its first run — a safe fallback that slightly over-notifies rather than silently dropping the subscription.
 
 **Scanner groups by repository** — if 50 users are subscribed to `facebook/react`, the scanner makes one GitHub API call for that repository, not 50. This keeps GitHub API usage proportional to the number of unique repositories, not subscribers.
 
