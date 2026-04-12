@@ -152,14 +152,19 @@ All configuration is via environment variables. Copy `.env.example` to `.env` to
 src/
   modules/
     subscriptions/   — HTTP routes and business logic for subscriptions
-    github/          — GitHub API client
+    github/          — GitHub API client and Redis/in-memory cache
     email/           — email sending via nodemailer
     scanner/         — background cron job that checks for new releases
+    metrics/         — Prometheus metrics registry
+  plugins/
+    apiKeyAuth.ts    — optional API key authentication hook
+    metrics.ts       — /metrics endpoint and HTTP instrumentation hook
   db/
     client.ts        — Prisma client singleton
   config/
     env.ts           — typed environment config
   test-utils/        — Jest helpers (Prisma mock factory, global test setup)
+  types.ts           — shared types (ServiceLogger)
   app.ts             — Fastify app factory
   server.ts          — entry point
 prisma/
