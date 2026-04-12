@@ -1,4 +1,4 @@
-import { SubscriptionService, ServiceError } from './subscriptions.service.js';
+import { SubscriptionService } from './subscriptions.service.js';
 import { RateLimitError, GitHubClient } from '../github/github.client.js';
 import { EmailService } from '../email/email.service.js';
 import { createPrismaMock } from '../../test-utils/prismaMock.js';
@@ -25,7 +25,7 @@ describe('SubscriptionService', () => {
     github = {
       validateRepoFormat: jest.fn().mockReturnValue(true),
       checkRepoExists: jest.fn().mockResolvedValue(true),
-      getLatestRelease: jest.fn(),
+      getLatestRelease: jest.fn().mockResolvedValue(null),
     } as unknown as jest.Mocked<GitHubClient>;
     email = {
       sendConfirmation: jest.fn().mockResolvedValue(undefined),
@@ -36,21 +36,40 @@ describe('SubscriptionService', () => {
   });
 
   describe('subscribe', () => {
-    it('happy path — creates subscription and sends confirmation', async () => {
+    it('happy path — creates subscription with lastSeenTag and sends confirmation', async () => {
       db.subscription.findUnique.mockResolvedValue(null);
       db.subscription.create.mockResolvedValue(mockSub);
+      github.getLatestRelease.mockResolvedValue('v1.0.0');
 
       await service.subscribe('test@example.com', 'facebook/react');
 
       expect(db.subscription.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ email: 'test@example.com', repo: 'facebook/react' }),
+          data: expect.objectContaining({
+            email: 'test@example.com',
+            repo: 'facebook/react',
+            lastSeenTag: 'v1.0.0',
+          }),
         }),
       );
       expect(email.sendConfirmation).toHaveBeenCalledWith(
         'test@example.com',
         'facebook/react',
         expect.any(String),
+      );
+    });
+
+    it('creates subscription with lastSeenTag=null when repo has no releases', async () => {
+      db.subscription.findUnique.mockResolvedValue(null);
+      db.subscription.create.mockResolvedValue(mockSub);
+      // getLatestRelease already mocked to return null in beforeEach
+
+      await service.subscribe('test@example.com', 'facebook/react');
+
+      expect(db.subscription.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ lastSeenTag: null }),
+        }),
       );
     });
 
@@ -100,9 +119,18 @@ describe('SubscriptionService', () => {
       });
     });
 
-    it('rethrows RateLimitError from GitHub', async () => {
+    it('rethrows RateLimitError from checkRepoExists', async () => {
       db.subscription.findUnique.mockResolvedValue(null);
       github.checkRepoExists.mockRejectedValue(new RateLimitError(30));
+
+      await expect(service.subscribe('test@example.com', 'facebook/react')).rejects.toBeInstanceOf(
+        RateLimitError,
+      );
+    });
+
+    it('rethrows RateLimitError from getLatestRelease', async () => {
+      db.subscription.findUnique.mockResolvedValue(null);
+      github.getLatestRelease.mockRejectedValue(new RateLimitError(60));
 
       await expect(service.subscribe('test@example.com', 'facebook/react')).rejects.toBeInstanceOf(
         RateLimitError,

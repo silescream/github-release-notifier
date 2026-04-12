@@ -25,6 +25,11 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
+            rm -rf /var/www/notifier/*
+            cp -r /root/github-release-notifier/public/* /var/www/notifier/
+            chown -R www-data:www-data /var/www/notifier
+            chmod -R 755 /var/www/notifier
+
             docker compose down
             docker compose up -d --build
 

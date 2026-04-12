@@ -218,8 +218,6 @@
           body: JSON.stringify({ email, repo }),
         });
 
-        const data = await response.json();
-
         if (response.ok) {
           confirmedEmail.textContent = email;
           formView.style.display = 'none';
@@ -227,6 +225,7 @@
           return;
         }
 
+        const data = await response.json();
         const code = data.code;
         const text = ERROR_MESSAGES[code] || data.error || 'Something went wrong. Please try again.';
         showMessage(text, 'error');

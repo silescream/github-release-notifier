@@ -64,11 +64,19 @@ export class SubscriptionService {
       throw new ServiceError('REPO_NOT_FOUND', 404, 'Repository not found on GitHub');
     }
 
+    let latestTag: string | null = null;
+    try {
+      latestTag = await this.github.getLatestRelease(repo);
+    } catch (err) {
+      if (err instanceof RateLimitError) throw err;
+      throw new ServiceError('GITHUB_ERROR', 503, 'Failed to fetch latest release');
+    }
+
     const confirmToken = randomBytes(32).toString('hex');
     const unsubscribeToken = randomBytes(32).toString('hex');
 
     const createdSub = await this.db.subscription.create({
-      data: { email, repo, confirmToken, unsubscribeToken },
+      data: { email, repo, confirmToken, unsubscribeToken, lastSeenTag: latestTag },
     });
 
     try {
