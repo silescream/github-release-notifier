@@ -28,14 +28,20 @@ async function start() {
 
   const shutdown = async (signal: string) => {
     app.log.info(`Received ${signal}, shutting down`);
-    scannerService.stop();
-    await app.close();
-    await prisma.$disconnect();
-    process.exit(0);
+  
+    try {
+      scannerService.stop();
+      await app.close();
+      await prisma.$disconnect();
+      process.exit(0);
+    } catch (error) {
+      app.log.error({ error }, 'Error during graceful shutdown');
+      process.exit(1);
+    }
   };
 
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
-  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
 }
 
 start();

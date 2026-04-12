@@ -29,7 +29,7 @@ cd github-release-notifier
 cp .env.example .env
 ```
 
-Edit `.env` and set at minimum `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB`. The `DATABASE_URL` inside the container is constructed automatically from those values, so it does not need to match the one in `.env`. Then:
+Edit `.env` and set at minimum `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, and `DATABASE_URL`. Then:
 
 ```bash
 docker-compose up --build
@@ -72,21 +72,6 @@ npx prisma migrate dev --name describe-your-change
 ```
 
 **Note on the frontend:** the static pages in `public/` (subscription form, confirmation, unsubscribe) are served by nginx in production and are not served by the application itself. In local development the API is fully functional — all endpoints can be exercised via curl or Postman. This is a deliberate trade-off: keeping the application backend-only avoids pulling in a static file dependency that adds no value in production where nginx handles it more efficiently.
-
-## Building for production
-
-```bash
-npm run build   # compiles TypeScript to dist/
-npm start       # runs dist/server.js
-```
-
-Migrations must be applied before starting the server in production:
-
-```bash
-npx prisma migrate deploy && npm start
-```
-
-In Docker this is handled automatically by the `CMD` in the Dockerfile.
 
 ## Running tests
 
@@ -137,7 +122,7 @@ Integration tests use a separate database (`notifier_test`) defined in `.env.tes
 ]
 ```
 
-**Error responses** always have the shape `{ "error": "message" }`.
+**Error responses** always have the shape `{ "error": "message", "code": "ERROR_CODE" }`. The `code` field is a machine-readable string (e.g. `INVALID_EMAIL`, `REPO_NOT_FOUND`, `ALREADY_EXISTS`).
 
 ## Configuration
 
@@ -211,6 +196,30 @@ The service exposes a `GET /metrics` endpoint in Prometheus text format. The fol
 | `active_subscriptions_total` | Gauge | Number of confirmed subscriptions — queried from the database on each scrape |
 
 Route labels use the Fastify route pattern (e.g. `/api/confirm/:token`) rather than the actual URL, so high-cardinality token values do not pollute the label space.
+
+## CI/CD
+
+### CI (`.github/workflows/ci.yml`)
+
+Runs on every push and pull request to `main`. Four parallel jobs:
+
+| Job | What it does |
+|-----|--------------|
+| Lint | Runs ESLint |
+| Unit Tests | Runs unit tests — no database, all external deps mocked |
+| Integration Tests | Spins up a real PostgreSQL container, runs migrations, runs integration tests |
+| Build | Compiles TypeScript — only runs if all three above pass |
+
+### Deploy (`.github/workflows/deploy.yml`)
+
+Triggers automatically after CI completes successfully on `main`. Connects to the VPS via SSH and:
+
+1. Pulls latest code from `main`
+2. Copies static frontend files to the nginx directory
+3. Runs `docker compose down && docker compose up -d --build`
+4. Polls `GET /health` for up to 30 seconds — rolls back with logs if the app doesn't come up
+
+Requires two repository secrets: `SSH_HOST` and `SSH_PRIVATE_KEY`.
 
 ## Design decisions
 
