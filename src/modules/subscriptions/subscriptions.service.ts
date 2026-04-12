@@ -75,7 +75,7 @@ export class SubscriptionService {
     const confirmToken = randomBytes(32).toString('hex');
     const unsubscribeToken = randomBytes(32).toString('hex');
 
-    let createdSub: Awaited<ReturnType<typeof this.db.subscription.create>>;
+    let createdSub: { id: string };
     try {
       createdSub = await this.db.subscription.create({
         data: { email, repo, confirmToken, unsubscribeToken, lastSeenTag: latestTag },

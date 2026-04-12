@@ -1,10 +1,16 @@
 import nodemailer, { type Transporter } from 'nodemailer';
 import { config } from '../../config/env.js';
+import type { ServiceLogger } from '../../types.js';
 
 export class EmailService {
   private readonly transporter: Transporter;
   private readonly from: string;
   private readonly isMockTransport: boolean;
+  private logger: ServiceLogger = console;
+
+  setLogger(logger: ServiceLogger): void {
+    this.logger = logger;
+  }
 
   constructor() {
     this.from = config.smtp.from;
@@ -25,7 +31,7 @@ export class EmailService {
     } else {
       this.isMockTransport = true;
       this.transporter = nodemailer.createTransport({ jsonTransport: true });
-      console.warn('[EmailService] SMTP not configured — emails will be logged to console');
+      this.logger.warn('[EmailService] SMTP not configured — emails will be logged to console');
     }
   }
 
@@ -46,12 +52,12 @@ export class EmailService {
       });
 
       if (this.isMockTransport) {
-        console.log(`[EmailService] Confirmation email (mock):\n${JSON.stringify(info)}`);
+        this.logger.info(`[EmailService] Confirmation email (mock):\n${JSON.stringify(info)}`);
       } else {
-        console.log(`[EmailService] Confirmation sent to ${email}`);
+        this.logger.info(`[EmailService] Confirmation sent to ${email}`);
       }
     } catch (err) {
-      console.error(`[EmailService] Failed to send confirmation to ${email}:`, err);
+      this.logger.error(`[EmailService] Failed to send confirmation to ${email}:`, err);
       throw err;
     }
   }
@@ -79,12 +85,12 @@ export class EmailService {
       });
 
       if (this.isMockTransport) {
-        console.log(`[EmailService] Release notification email (mock):\n${JSON.stringify(info)}`);
+        this.logger.info(`[EmailService] Release notification email (mock):\n${JSON.stringify(info)}`);
       } else {
-        console.log(`[EmailService] Release notification sent to ${email}`);
+        this.logger.info(`[EmailService] Release notification sent to ${email}`);
       }
     } catch (err) {
-      console.error(`[EmailService] Failed to send release notification to ${email}:`, err);
+      this.logger.error(`[EmailService] Failed to send release notification to ${email}:`, err);
       throw err;
     }
   }

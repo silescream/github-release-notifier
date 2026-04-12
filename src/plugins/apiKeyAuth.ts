@@ -17,7 +17,7 @@ export default async function apiKeyAuth(fastify: FastifyInstance) {
 
     const key = request.headers['x-api-key'];
     if (key !== config.apiKey) {
-      reply.code(401).send({ error: 'Invalid or missing API key' });
+      return reply.code(401).send({ error: 'Invalid or missing API key' });
     }
   });
 }

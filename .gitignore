@@ -3,6 +3,7 @@ dist
 .env
 .env.*
 !.env.example
+!.env.test.example
 
 coverage
 .nyc_output
@@ -16,7 +17,3 @@ yarn-error.log*
 pnpm-debug.log*
 
 .prisma
-
-PLAN.html
-PLAN.pdf
-PLAN.md

@@ -4,6 +4,7 @@ import { prisma } from '../../db/client.js';
 import { githubClient, RateLimitError, type GitHubClient } from '../github/github.client.js';
 import { emailService, type EmailService } from '../email/email.service.js';
 import { scannerNotificationsTotal } from '../metrics/metrics.registry.js';
+import type { ServiceLogger } from '../../types.js';
 
 const SCAN_DELAY_MS = 300;
 
@@ -15,6 +16,7 @@ export class ScannerService {
   private task: cron.ScheduledTask | null = null;
   private rateLimitedUntil = 0;
   private isRunning = false;
+  private logger: ServiceLogger = console;
 
   constructor(
     private readonly db: PrismaClient,
@@ -22,28 +24,32 @@ export class ScannerService {
     private readonly email: EmailService,
   ) {}
 
+  setLogger(logger: ServiceLogger): void {
+    this.logger = logger;
+  }
+
   start(schedule = '*/10 * * * *'): void {
     if (this.task) return;
 
     this.task = cron.schedule(schedule, () => {
       this.runScan().catch((err) => {
-        console.error('[Scanner] Unhandled error during scan:', err);
+        this.logger.error('[Scanner] Unhandled error during scan:', err);
       });
     });
 
-    console.log(`[Scanner] Started with schedule: ${schedule}`);
+    this.logger.info(`[Scanner] Started with schedule: ${schedule}`);
   }
 
   stop(): void {
     if (!this.task) return;
     this.task.stop();
     this.task = null;
-    console.log('[Scanner] Stopped');
+    this.logger.info('[Scanner] Stopped');
   }
 
   async runScan(): Promise<void> {
     if (this.isRunning) {
-      console.log('[Scanner] Previous scan still running, skipping');
+      this.logger.info('[Scanner] Previous scan still running, skipping');
       return;
     }
 
@@ -59,7 +65,7 @@ export class ScannerService {
   private async scan(): Promise<void> {
     if (Date.now() < this.rateLimitedUntil) {
       const retryInSec = Math.ceil((this.rateLimitedUntil - Date.now()) / 1000);
-      console.log(`[Scanner] Rate limited, skipping scan. Retry in ${retryInSec}s`);
+      this.logger.info(`[Scanner] Rate limited, skipping scan. Retry in ${retryInSec}s`);
       return;
     }
 
@@ -87,12 +93,10 @@ export class ScannerService {
       } catch (err) {
         if (err instanceof RateLimitError) {
           this.rateLimitedUntil = Date.now() + err.retryAfter * 1000;
-          console.warn(
-            `[Scanner] Rate limited by GitHub. Retry after ${err.retryAfter}s`,
-          );
+          this.logger.warn(`[Scanner] Rate limited by GitHub. Retry after ${err.retryAfter}s`);
           break;
         }
-        console.error(`[Scanner] Failed to fetch latest release for ${repo}:`, err);
+        this.logger.error(`[Scanner] Failed to fetch latest release for ${repo}:`, err);
         continue;
       }
 
@@ -114,7 +118,7 @@ export class ScannerService {
 
           scannerNotificationsTotal.inc();
         } catch (err) {
-          console.error(`[Scanner] Failed to process subscription ${sub.id} (${sub.email}):`, err);
+          this.logger.error(`[Scanner] Failed to process subscription ${sub.id} (${sub.email}):`, err);
         }
       }
     }

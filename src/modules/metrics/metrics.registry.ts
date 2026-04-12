@@ -35,7 +35,11 @@ export const activeSubscriptionsTotal = new Gauge({
   help: 'Number of confirmed active subscriptions',
   registers: [registry],
   async collect() {
-    const count = await prisma.subscription.count({ where: { confirmed: true } });
-    this.set(count);
+    try {
+      const count = await prisma.subscription.count({ where: { confirmed: true } });
+      this.set(count);
+    } catch {
+      // retain previous value if DB is unavailable
+    }
   },
 });
