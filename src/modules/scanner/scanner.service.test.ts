@@ -66,16 +66,21 @@ describe('ScannerService', () => {
     expect(db.subscription.update).not.toHaveBeenCalled();
   });
 
-  it('sets tag without notification when lastSeenTag is null (first check)', async () => {
+  it('sends notification when lastSeenTag is null and release exists', async () => {
     db.subscription.findMany.mockResolvedValue([makeSub({ lastSeenTag: null as unknown as string })]);
     github.getLatestRelease.mockResolvedValue('v18.0.0');
-    db.subscription.updateMany.mockResolvedValue({ count: 1 });
+    db.subscription.update.mockResolvedValue({} as any);
 
     await scanner.runScan();
 
-    expect(email.sendReleaseNotification).not.toHaveBeenCalled();
-    expect(db.subscription.updateMany).toHaveBeenCalledWith({
-      where: { id: { in: [baseSub.id] } },
+    expect(email.sendReleaseNotification).toHaveBeenCalledWith(
+      'test@example.com',
+      'facebook/react',
+      'v18.0.0',
+      baseSub.unsubscribeToken,
+    );
+    expect(db.subscription.update).toHaveBeenCalledWith({
+      where: { id: baseSub.id },
       data: { lastSeenTag: 'v18.0.0' },
     });
   });

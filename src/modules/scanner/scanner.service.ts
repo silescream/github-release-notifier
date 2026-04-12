@@ -98,19 +98,7 @@ export class ScannerService {
 
       if (!latestTag) continue;
 
-      const firstTimeSubs = subs.filter((s) => s.lastSeenTag === null);
-      if (firstTimeSubs.length > 0) {
-        try {
-          await this.db.subscription.updateMany({
-            where: { id: { in: firstTimeSubs.map((s) => s.id) } },
-            data: { lastSeenTag: latestTag },
-          });
-        } catch (err) {
-          console.error(`[Scanner] Failed to initialize lastSeenTag for ${repo}:`, err);
-        }
-      }
-
-      for (const sub of subs.filter((s) => s.lastSeenTag !== null && s.lastSeenTag !== latestTag)) {
+      for (const sub of subs.filter((s) => s.lastSeenTag !== latestTag)) {
         try {
           await this.email.sendReleaseNotification(
             sub.email,
