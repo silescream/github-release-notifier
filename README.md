@@ -29,7 +29,7 @@ cd github-release-notifier
 cp .env.example .env
 ```
 
-Edit `.env` and set at minimum `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB`. The `DATABASE_URL` inside the container is constructed automatically from those values, so it does not need to match the one in `.env`. Then:
+Edit `.env` and set at minimum `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, and `DATABASE_URL`. Then:
 
 ```bash
 docker-compose up --build
@@ -72,21 +72,6 @@ npx prisma migrate dev --name describe-your-change
 ```
 
 **Note on the frontend:** the static pages in `public/` (subscription form, confirmation, unsubscribe) are served by nginx in production and are not served by the application itself. In local development the API is fully functional — all endpoints can be exercised via curl or Postman. This is a deliberate trade-off: keeping the application backend-only avoids pulling in a static file dependency that adds no value in production where nginx handles it more efficiently.
-
-## Building for production
-
-```bash
-npm run build   # compiles TypeScript to dist/
-npm start       # runs dist/server.js
-```
-
-Migrations must be applied before starting the server in production:
-
-```bash
-npx prisma migrate deploy && npm start
-```
-
-In Docker this is handled automatically by the `CMD` in the Dockerfile.
 
 ## Running tests
 
@@ -137,7 +122,7 @@ Integration tests use a separate database (`notifier_test`) defined in `.env.tes
 ]
 ```
 
-**Error responses** always have the shape `{ "error": "message" }`.
+**Error responses** always have the shape `{ "error": "message", "code": "ERROR_CODE" }`. The `code` field is a machine-readable string (e.g. `INVALID_EMAIL`, `REPO_NOT_FOUND`, `ALREADY_EXISTS`).
 
 ## Configuration
 
