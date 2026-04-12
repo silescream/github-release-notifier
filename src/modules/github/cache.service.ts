@@ -1,5 +1,6 @@
 import { Redis } from 'ioredis';
 import { config } from '../../config/env.js';
+import type { ServiceLogger } from '../../types.js';
 
 const TTL_SECONDS = 600;
 
@@ -7,6 +8,11 @@ export class CacheService {
   private readonly redis: Redis | null = null;
   private redisAvailable = false;
   private readonly map = new Map<string, { value: string; expiresAt: number }>();
+  private logger: ServiceLogger = console;
+
+  setLogger(logger: ServiceLogger): void {
+    this.logger = logger;
+  }
 
   constructor() {
     if (config.redisUrl) {
@@ -17,7 +23,7 @@ export class CacheService {
             this.redisAvailable = true;
           })
           .catch((err: Error) => {
-            console.error('[Cache] Failed to connect to Redis, falling back to in-memory:', err.message);
+            this.logger.error('[Cache] Failed to connect to Redis, falling back to in-memory:', err.message);
           });
         this.redis.on('error', () => {
           this.redisAvailable = false;
@@ -26,7 +32,7 @@ export class CacheService {
           this.redisAvailable = true;
         });
       } catch (err) {
-        console.error('[Cache] Failed to initialize Redis client, falling back to in-memory:', err);
+        this.logger.error('[Cache] Failed to initialize Redis client, falling back to in-memory:', err);
       }
     }
   }

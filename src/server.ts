@@ -2,9 +2,15 @@ import { buildApp } from './app.js';
 import { config } from './config/env.js';
 import { prisma } from './db/client.js';
 import { scannerService } from './modules/scanner/scanner.service.js';
+import { emailService } from './modules/email/email.service.js';
+import { cacheService } from './modules/github/cache.service.js';
 
 async function start() {
   const app = buildApp();
+
+  cacheService.setLogger(app.log);
+  emailService.setLogger(app.log);
+  scannerService.setLogger(app.log);
 
   try {
     await prisma.$connect();
