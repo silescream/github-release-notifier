@@ -1,4 +1,5 @@
 import { SubscriptionService } from './subscriptions.service.js';
+import { Prisma } from '@prisma/client';
 import { RateLimitError, GitHubClient } from '../github/github.client.js';
 import { EmailService } from '../email/email.service.js';
 import { createPrismaMock } from '../../test-utils/prismaMock.js';
@@ -103,6 +104,21 @@ describe('SubscriptionService', () => {
 
     it('throws 409 on duplicate subscription', async () => {
       db.subscription.findUnique.mockResolvedValue(mockSub);
+      await expect(service.subscribe('test@example.com', 'facebook/react')).rejects.toMatchObject({
+        code: 'ALREADY_EXISTS',
+        status: 409,
+      });
+    });
+
+    it('throws 409 when create fails with P2002 unique constraint (race condition)', async () => {
+      db.subscription.findUnique.mockResolvedValue(null);
+      db.subscription.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+          code: 'P2002',
+          clientVersion: '6.0.0',
+        }),
+      );
+
       await expect(service.subscribe('test@example.com', 'facebook/react')).rejects.toMatchObject({
         code: 'ALREADY_EXISTS',
         status: 409,

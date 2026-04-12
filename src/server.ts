@@ -19,6 +19,17 @@ async function start() {
     app.log.error(error);
     process.exit(1);
   }
+
+  const shutdown = async (signal: string) => {
+    app.log.info(`Received ${signal}, shutting down`);
+    scannerService.stop();
+    await app.close();
+    await prisma.$disconnect();
+    process.exit(0);
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
 start();
