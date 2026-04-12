@@ -30,7 +30,7 @@ export class EmailService {
   }
 
   async sendConfirmation(email: string, repo: string, token: string): Promise<void> {
-    const confirmUrl = `${config.appBaseUrl}/api/confirm/${token}`;
+    const confirmUrl = `${config.appBaseUrl}/confirmed.html?token=${token}`;
 
     try {
       const info = await this.transporter.sendMail({
@@ -63,7 +63,7 @@ export class EmailService {
     unsubscribeToken: string,
   ): Promise<void> {
     const releaseUrl = `https://github.com/${repo}/releases/tag/${encodeURIComponent(tag)}`;
-    const unsubscribeUrl = `${config.appBaseUrl}/api/unsubscribe/${unsubscribeToken}`;
+    const unsubscribeUrl = `${config.appBaseUrl}/unsubscribed.html?token=${unsubscribeToken}`;
 
     try {
       const info = await this.transporter.sendMail({

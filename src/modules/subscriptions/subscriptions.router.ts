@@ -4,7 +4,7 @@ import { RateLimitError } from '../github/github.client.js';
 
 function handleError(err: unknown, reply: FastifyReply): void {
   if (err instanceof ServiceError) {
-    reply.code(err.status).send({ error: err.message });
+    reply.code(err.status).send({ error: err.message, code: err.code });
     return;
   }
 

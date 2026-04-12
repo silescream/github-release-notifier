@@ -1,0 +1,41 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/github-release-notifier || exit 1
+
+            git fetch origin main
+            git reset --hard origin/main
+
+            docker compose down
+            docker compose up -d --build
+
+            for i in {1..30}; do
+              if curl -sf http://localhost:3000/health > /dev/null; then
+                docker image prune -f
+                exit 0
+              fi
+              sleep 1
+            done
+
+            echo "Health check failed after 30s"
+            docker compose logs --tail=50 app
+            exit 1
